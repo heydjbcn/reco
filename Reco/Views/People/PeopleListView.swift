@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Contacts
 
 struct PeopleListView: View {
     @Environment(\.modelContext) private var context
@@ -10,6 +11,7 @@ struct PeopleListView: View {
     @State private var showingNew = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
+    @State private var isImporting = false
 
     private var filtered: [Person] {
         guard !searchText.isEmpty else { return people }
@@ -45,6 +47,12 @@ struct PeopleListView: View {
                         } label: {
                             Label("Datos demo", systemImage: "sparkles")
                         }
+                        Button {
+                            Task { await importContacts() }
+                        } label: {
+                            Label("Importar contactos", systemImage: "square.and.arrow.down")
+                        }
+                        .disabled(isImporting)
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
@@ -65,6 +73,13 @@ struct PeopleListView: View {
             } message: {
                 Text(alertMessage)
             }
+            .overlay {
+                if isImporting {
+                    ProgressView("Importando contactos…")
+                        .padding()
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                }
+            }
         }
     }
 
@@ -78,6 +93,29 @@ struct PeopleListView: View {
         let demo = DatabaseSeeder.makeDemoPeople()
         for p in demo { context.insert(p) }
         alertMessage = "Añadidas \(demo.count) personas demo"
+        showingAlert = true
+    }
+
+    private func importContacts() async {
+        isImporting = true
+        defer { isImporting = false }
+
+        let result = await ContactsImporter.shared.importContacts()
+
+        if let error = result.error {
+            alertMessage = "Error: \(error)"
+            showingAlert = true
+            return
+        }
+
+        // Deduplicar por nombre (case-insensitive)
+        let existingNames = Set(people.map { $0.name.lowercased() })
+        let toAdd = result.imported.filter { !existingNames.contains($0.name.lowercased()) }
+        let skippedDuplicates = result.imported.count - toAdd.count
+
+        for p in toAdd { context.insert(p) }
+
+        alertMessage = "Importadas \(toAdd.count) personas. Omitidas \(skippedDuplicates) duplicadas, \(result.skipped) sin nombre."
         showingAlert = true
     }
 }

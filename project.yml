@@ -51,3 +51,28 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTS_MACCATALYST: NO
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+    dependencies:
+      - target: TodayWidget
+        embed: true
+
+  TodayWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: TodayWidget
+    resources:
+      - path: TodayWidget/Resources/Assets.xcassets
+    info:
+      path: TodayWidget/Info.plist
+      properties:
+        CFBundleDisplayName: "Reco"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mauri.reco.widget
+        SKIP_INSTALL: YES
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
